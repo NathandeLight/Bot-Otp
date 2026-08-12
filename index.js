@@ -107,7 +107,10 @@ bot.onText(/\/topup (.+)/, async (msg, match) => {
     const d = result.Data;
     pendingTopups[d.TransactionId] = chatId;
 
-    await bot.sendPhoto(chatId, d.QrImage, {
+    const qrRes = await fetch(d.QrImage);
+    const qrBuffer = Buffer.from(await qrRes.arrayBuffer());
+
+    await bot.sendPhoto(chatId, qrBuffer, {
       caption: `💳 Topup Rp${amount.toLocaleString('id-ID')}\n\nScan QR di atas buat bayar.\nBerlaku sampai: ${d.Expired}\n\nSaldo otomatis masuk setelah pembayaran dikonfirmasi.`
     });
   } catch (err) {
