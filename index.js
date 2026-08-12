@@ -110,8 +110,11 @@ bot.onText(/\/topup (.+)/, async (msg, match) => {
     const qrRes = await fetch(d.QrImage);
     const qrBuffer = Buffer.from(await qrRes.arrayBuffer());
 
-    await bot.sendPhoto(chatId, qrBuffer, {
+await bot.sendPhoto(chatId, qrBuffer, {
       caption: `💳 Topup Rp${amount.toLocaleString('id-ID')}\n\nScan QR di atas buat bayar.\nBerlaku sampai: ${d.Expired}\n\nSaldo otomatis masuk setelah pembayaran dikonfirmasi.`
+    }, {
+      filename: 'qris.png',
+      contentType: 'image/png'
     });
   } catch (err) {
     console.error(err);
