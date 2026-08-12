@@ -216,6 +216,57 @@ app.get('/', (req, res) => {
   res.send('Bot order jalan!');
 });
 
+const IPAYMU_VA = process.env.IPAYMU_VA;
+const IPAYMU_API_KEY = process.env.IPAYMU_API_KEY;
+const IPAYMU_URL = 'https://sandbox.ipaymu.com/api/v2/payment/direct'; // ganti ke my.ipaymu.com kalau sudah production
+
+function generateIpaymuSignature(method, body) {
+  const bodyEncrypt = crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex').toLowerCase();
+  const stringToSign = `${method}:${IPAYMU_VA}:${bodyEncrypt}:${IPAYMU_API_KEY}`;
+  return crypto.createHmac('sha256', IPAYMU_API_KEY).update(stringToSign).digest('hex');
+}
+
+bot.onText(/\/topup (.+)/, async (msg, match) => {
+  const chatId = msg.chat.id;
+  const amount = parseInt(match[1].trim());
+
+  if (isNaN(amount) || amount < 1000) {
+    return bot.sendMessage(chatId, 'Format: /topup <jumlah>\nContoh: /topup 50000');
+  }
+
+  const body = {
+    name: `User ${chatId}`,
+    phone: '081234567890', // sementara dummy, nanti bisa diganti minta nomor asli user
+    email: `user${chatId}@example.com`,
+    amount: amount,
+    paymentMethod: 'qris',
+    paymentChannel: 'qris',
+    notifyUrl: 'https://bot-otp-production.up.railway.app/webhook/topup',
+    referenceId: `TOPUP-${chatId}-${Date.now()}`
+  };
+
+  const signature = generateIpaymuSignature('POST', body);
+
+  try {
+    const res = await fetch(IPAYMU_URL, {
+      method: 'POST',
+      headers: {
+        'va': IPAYMU_VA,
+        'signature': signature,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    const result = await res.json();
+    console.log('iPaymu response:', JSON.stringify(result));
+
+    bot.sendMessage(chatId, `Respons dari iPaymu (buat dicek dulu):\n\n${JSON.stringify(result, null, 2)}`);
+  } catch (err) {
+    console.error(err);
+    bot.sendMessage(chatId, 'Gagal menghubungi iPaymu.');
+  }
+});
 app.listen(port, () => {
   console.log(`Server jalan di port ${port}`);
 });
