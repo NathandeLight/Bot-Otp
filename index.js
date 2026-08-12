@@ -211,6 +211,19 @@ app.post('/webhook/otp', express.raw({ type: 'application/json' }), (req, res) =
 
   res.status(200).send('OK');
 });
+app.post('/webhook/topup', express.urlencoded({ extended: true }), (req, res) => {
+  console.log('Notifikasi topup diterima:', JSON.stringify(req.body));
+
+  const { trx_id, status, sid } = req.body;
+  const chatId = pendingTopups[trx_id];
+
+  if (chatId && status === '1') { // status 1 = berhasil (perlu dikonfirmasi lagi field pastinya)
+    bot.sendMessage(chatId, `✅ Pembayaran berhasil! Saldo kamu sudah ditambahkan.`);
+    delete pendingTopups[trx_id];
+  }
+
+  res.status(200).send('OK');
+});
 
 app.get('/', (req, res) => {
   res.send('Bot order jalan!');
